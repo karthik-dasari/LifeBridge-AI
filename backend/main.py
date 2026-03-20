@@ -68,15 +68,26 @@ async def add_security_headers(request: Request, call_next):
 
 # --- Rate limiting middleware ---
 _rate_limit_store: dict[str, list[float]] = defaultdict(list)
+_rate_limit_last_cleanup: float = time.time()
 RATE_LIMIT_MAX = int(os.getenv("RATE_LIMIT_MAX", "60"))  # requests per window
 RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))  # seconds
+_RATE_LIMIT_CLEANUP_INTERVAL = 300  # purge stale IPs every 5 minutes
 
 
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
+    global _rate_limit_last_cleanup
     client_ip = request.client.host if request.client else "unknown"
     now = time.time()
-    # Clean old entries
+
+    # Periodically purge stale IP entries to prevent unbounded memory growth
+    if now - _rate_limit_last_cleanup > _RATE_LIMIT_CLEANUP_INTERVAL:
+        stale_ips = [ip for ip, ts in _rate_limit_store.items() if not ts or now - ts[-1] > RATE_LIMIT_WINDOW]
+        for ip in stale_ips:
+            del _rate_limit_store[ip]
+        _rate_limit_last_cleanup = now
+
+    # Clean old entries for current IP
     _rate_limit_store[client_ip] = [
         t for t in _rate_limit_store[client_ip] if now - t < RATE_LIMIT_WINDOW
     ]

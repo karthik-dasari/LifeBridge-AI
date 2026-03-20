@@ -41,17 +41,15 @@ def _geocode_location(location: str) -> tuple[float, float]:
 
 
 def _compute_match_score(
-    hospital: dict,
-    required_facilities: list[str],
+    h_facilities_lower: set[str],
+    req_lower: list[str],
     distance_km: float,
+    availability: dict,
 ) -> float:
     """Compute a composite match score (0–100)."""
     # Facility match component (0-50 points)
-    h_facilities = [f.lower() for f in hospital.get("facilities", [])]
-    req_lower = [f.lower() for f in required_facilities]
-
     if req_lower:
-        matched = sum(1 for f in req_lower if f in h_facilities)
+        matched = sum(1 for f in req_lower if f in h_facilities_lower)
         facility_score = (matched / len(req_lower)) * 50
     else:
         facility_score = 25
@@ -71,12 +69,14 @@ def _compute_match_score(
         distance_score = 5
 
     # Availability component (0-20 points)
-    avail = hospital.get("availability", {})
-    icu = avail.get("icu_beds", 0)
-    slots = avail.get("emergency_slots", 0)
+    icu = availability.get("icu_beds", 0)
+    slots = availability.get("emergency_slots", 0)
     avail_score = min(20, (icu * 2) + (slots * 1))
 
     return round(facility_score + distance_score + avail_score, 1)
+
+# Match type ordering for sorting: exact first, partial second, nearest last
+_MATCH_TYPE_ORDER = {"exact": 0, "partial": 1, "nearest": 2}
 
 
 def match_hospitals(
@@ -94,9 +94,11 @@ def match_hospitals(
         user_lat, user_lng = _geocode_location(location)
     all_hospitals = get_all_hospitals()
 
-    exact_matches = []
-    partial_matches = []
-    nearest_fallback = []
+    # Lowercase required facilities once
+    req_lower = [f.lower() for f in required_facilities]
+    req_count = len(req_lower)
+
+    matches = []
 
     for h in all_hospitals:
         h_loc = h.get("location", {})
@@ -104,54 +106,36 @@ def match_hospitals(
         h_lng = h_loc.get("lng", 0)
         distance = round(haversine(user_lat, user_lng, h_lat, h_lng), 2)
 
-        h_facilities_lower = [f.lower() for f in h.get("facilities", [])]
-        req_lower = [f.lower() for f in required_facilities]
-
+        # Use a set for O(1) facility lookups
+        h_facilities_lower = {f.lower() for f in h.get("facilities", [])}
         matched_count = sum(1 for f in req_lower if f in h_facilities_lower)
+
+        availability = h.get("availability", {"icu_beds": 0, "emergency_slots": 0})
+        score = _compute_match_score(h_facilities_lower, req_lower, distance, availability)
+
+        if req_lower and matched_count == req_count:
+            match_type = "exact"
+        elif req_lower and matched_count > 0:
+            match_type = "partial"
+        else:
+            match_type = "nearest"
 
         hospital_obj = Hospital(
             id=h.get("id"),
             name=h["name"],
             location={"lat": h_lat, "lng": h_lng},
             facilities=h.get("facilities", []),
-            availability=h.get("availability", {"icu_beds": 0, "emergency_slots": 0}),
+            availability=availability,
         )
 
-        if req_lower and matched_count == len(req_lower):
-            match_type = "exact"
-            score = _compute_match_score(h, required_facilities, distance)
-            exact_matches.append(HospitalMatch(
-                hospital=hospital_obj,
-                match_score=score,
-                distance_km=distance,
-                match_type=match_type,
-            ))
-        elif req_lower and matched_count > 0:
-            match_type = "partial"
-            score = _compute_match_score(h, required_facilities, distance)
-            partial_matches.append(HospitalMatch(
-                hospital=hospital_obj,
-                match_score=score,
-                distance_km=distance,
-                match_type=match_type,
-            ))
-        else:
-            match_type = "nearest"
-            score = _compute_match_score(h, required_facilities, distance)
-            nearest_fallback.append(HospitalMatch(
-                hospital=hospital_obj,
-                match_score=score,
-                distance_km=distance,
-                match_type=match_type,
-            ))
+        matches.append(HospitalMatch(
+            hospital=hospital_obj,
+            match_score=score,
+            distance_km=distance,
+            match_type=match_type,
+        ))
 
-    # Sort each group by score descending, then distance ascending
-    sort_key = lambda m: (-m.match_score, m.distance_km)
-    exact_matches.sort(key=sort_key)
-    partial_matches.sort(key=sort_key)
-    nearest_fallback.sort(key=sort_key)
-
-    # Combine: exact first, then partial, then nearest
-    matches = exact_matches + partial_matches + nearest_fallback
+    # Single sort: by match type order, then score descending, then distance ascending
+    matches.sort(key=lambda m: (_MATCH_TYPE_ORDER.get(m.match_type, 2), -m.match_score, m.distance_km))
 
     return HospitalMatchResponse(matches=matches)

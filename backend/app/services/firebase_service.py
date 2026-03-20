@@ -54,6 +54,9 @@ _db = None
 _use_mock = True
 _mock_alerts = []
 _mock_locations = {}
+_hospitals_cache: list[dict] | None = None
+_hospitals_cache_time: float = 0.0
+_HOSPITALS_CACHE_TTL = 30  # seconds
 
 
 def _init_firebase():
@@ -89,9 +92,15 @@ def _seed_mock_data():
 
 def get_all_hospitals() -> list[dict]:
     """Fetch all hospitals from Firestore or return mock data."""
+    global _hospitals_cache, _hospitals_cache_time
     _init_firebase()
     if _use_mock:
         return MOCK_HOSPITALS
+
+    import time as _time
+    now = _time.monotonic()
+    if _hospitals_cache is not None and now - _hospitals_cache_time < _HOSPITALS_CACHE_TTL:
+        return _hospitals_cache
 
     hospitals_ref = _db.collection("hospitals")
     docs = hospitals_ref.stream()
@@ -100,6 +109,8 @@ def get_all_hospitals() -> list[dict]:
         data = doc.to_dict()
         data["id"] = doc.id
         hospitals.append(data)
+    _hospitals_cache = hospitals
+    _hospitals_cache_time = now
     return hospitals
 
 
@@ -177,7 +188,9 @@ def get_live_location(alert_id: str) -> dict | None:
 
 def register_hospital(hospital_data: dict) -> str:
     """Register a new hospital and return its ID."""
+    global _hospitals_cache
     _init_firebase()
+    _hospitals_cache = None  # invalidate cache
     if _use_mock:
         import uuid
         hospital_id = f"h{len(MOCK_HOSPITALS) + 1}_{uuid.uuid4().hex[:4]}"
@@ -192,7 +205,9 @@ def register_hospital(hospital_data: dict) -> str:
 
 def update_hospital(hospital_id: str, data: dict) -> bool:
     """Update hospital data in Firestore."""
+    global _hospitals_cache
     _init_firebase()
+    _hospitals_cache = None  # invalidate cache
     if _use_mock:
         for h in MOCK_HOSPITALS:
             if h["id"] == hospital_id:
