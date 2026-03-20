@@ -4,9 +4,24 @@ and returns structured emergency analysis.
 """
 
 import json
+import logging
 import re
 from app.config import settings
 from app.models.emergency import EmergencyAnalysis
+
+# Try importing Vertex AI at module level (once) instead of per-request
+_gemini_model = None
+_vertexai_available = False
+
+try:
+    import vertexai
+    from vertexai.generative_models import GenerativeModel
+
+    vertexai.init(project=settings.GCP_PROJECT_ID, location="us-central1")
+    _gemini_model = GenerativeModel("gemini-1.5-flash")
+    _vertexai_available = True
+except Exception as e:
+    logging.warning(f"Vertex AI initialization failed (will use keyword fallback): {e}")
 
 
 # Mock analysis based on keyword matching
@@ -59,13 +74,10 @@ def _mock_analyze(input_text: str) -> EmergencyAnalysis:
 
 async def analyze_emergency(input_text: str, location: str) -> EmergencyAnalysis:
     """Analyze emergency input using Vertex AI Gemini model or mock fallback."""
+    if not _vertexai_available or _gemini_model is None:
+        return _mock_analyze(input_text)
+
     try:
-        import vertexai
-        from vertexai.generative_models import GenerativeModel
-
-        vertexai.init(project=settings.GCP_PROJECT_ID, location="us-central1")
-        model = GenerativeModel("gemini-1.5-flash") # Using 1.5 because 2.0 might need preview SDK on Vertex
-
         prompt = f"""You are a medical emergency triage AI. Analyze the following emergency description and return ONLY a JSON object with no extra text.
 
 Emergency: "{input_text}"
@@ -79,7 +91,7 @@ Return exactly this JSON structure:
   "confidence_score": <float between 0.0 and 1.0>
 }}"""
 
-        response = model.generate_content(prompt)
+        response = _gemini_model.generate_content(prompt)
         text = response.text.strip()
 
         # Extract JSON from response (handle markdown code blocks)

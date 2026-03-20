@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import {
   GoogleMap,
   useJsApiLoader,
@@ -17,6 +17,103 @@ const DEFAULT_CENTER = { lat: 17.385, lng: 78.4867 } // Hyderabad
 
 const LIBRARIES = ['places']
 
+const MAP_OPTIONS = {
+  zoomControl: true,
+  streetViewControl: false,
+  mapTypeControl: false,
+  fullscreenControl: true,
+}
+
+const ROUTE_OPTIONS = {
+  polylineOptions: {
+    strokeColor: '#4F46E5',
+    strokeWeight: 5,
+    strokeOpacity: 0.8,
+  },
+  suppressMarkers: true,
+}
+
+// --- Pure functions extracted outside component to avoid re-creation ---
+
+function haversine(a, b) {
+  const R = 6371
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180
+  const sinLat = Math.sin(dLat / 2)
+  const sinLng = Math.sin(dLng / 2)
+  const h =
+    sinLat * sinLat +
+    Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * sinLng * sinLng
+  return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h))
+}
+
+function interpolatePath(points, totalSteps) {
+  if (points.length < 2) return points
+
+  const distances = [0]
+  for (let i = 1; i < points.length; i++) {
+    const d = haversine(points[i - 1], points[i])
+    distances.push(distances[i - 1] + d)
+  }
+  const totalDist = distances[distances.length - 1]
+  if (totalDist === 0) return points
+
+  const result = []
+  for (let s = 0; s <= totalSteps; s++) {
+    const targetDist = (s / totalSteps) * totalDist
+    let segIdx = 0
+    for (let i = 1; i < distances.length; i++) {
+      if (distances[i] >= targetDist) {
+        segIdx = i - 1
+        break
+      }
+    }
+    const segLen = distances[segIdx + 1] - distances[segIdx]
+    const t = segLen > 0 ? (targetDist - distances[segIdx]) / segLen : 0
+    result.push({
+      lat: points[segIdx].lat + t * (points[segIdx + 1].lat - points[segIdx].lat),
+      lng: points[segIdx].lng + t * (points[segIdx + 1].lng - points[segIdx].lng),
+    })
+  }
+  return result
+}
+
+function parseDurationToMin(summary) {
+  if (!summary) return 10
+  const match = summary.match(/(\d+)\s*min/)
+  if (match) return parseInt(match[1], 10)
+  const hourMatch = summary.match(/(\d+)\s*hour/)
+  if (hourMatch) return parseInt(hourMatch[1], 10) * 60
+  return 10
+}
+
+// Pre-encoded SVG icon URLs (computed once, never during render)
+const USER_ICON_URL = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="36" height="36">
+    <circle cx="12" cy="12" r="10" fill="#4F46E5" stroke="white" stroke-width="2"/>
+    <circle cx="12" cy="12" r="4" fill="white"/>
+  </svg>`
+)
+
+const AMBULANCE_ICON_URL = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="44" height="44">
+    <circle cx="20" cy="20" r="18" fill="#DC2626" stroke="white" stroke-width="3"/>
+    <text x="20" y="26" text-anchor="middle" font-size="18">🚑</text>
+  </svg>`
+)
+
+function makeHospitalIconUrl(isSelected) {
+  return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 40" width="32" height="40">
+      <path d="M16 0C7.2 0 0 7.2 0 16c0 12 16 24 16 24s16-12 16-24C32 7.2 24.8 0 16 0z" fill="${isSelected ? '#059669' : '#4F46E5'}"/>
+      <text x="16" y="20" text-anchor="middle" font-size="14" fill="white">🏥</text>
+    </svg>`
+  )
+}
+
+const HOSPITAL_ICON_SELECTED = makeHospitalIconUrl(true)
+const HOSPITAL_ICON_DEFAULT = makeHospitalIconUrl(false)
+
 export default function MapView({ userCoords, matches, selectedHospitalId, onSelectHospital }) {
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
@@ -33,11 +130,25 @@ export default function MapView({ userCoords, matches, selectedHospitalId, onSel
   const [eta, setEta] = useState('')
   const [routeSummary, setRouteSummary] = useState('')
   const stepIndexRef = useRef(0)
+  const routeSummaryRef = useRef('')
+
+  // Keep routeSummary in a ref so the interval callback always has the latest value
+  useEffect(() => {
+    routeSummaryRef.current = routeSummary
+  }, [routeSummary])
 
   const center = userCoords || DEFAULT_CENTER
 
   const onMapLoad = useCallback((map) => {
     mapRef.current = map
+  }, [])
+
+  const stopNavigation = useCallback(() => {
+    if (animationRef.current) {
+      clearInterval(animationRef.current)
+      animationRef.current = null
+    }
+    setIsNavigating(false)
   }, [])
 
   // Fetch route when a hospital is selected
@@ -94,63 +205,14 @@ export default function MapView({ userCoords, matches, selectedHospitalId, onSel
     )
 
     return () => stopNavigation()
-  }, [isLoaded, selectedHospitalId, userCoords, matches])
+  }, [isLoaded, selectedHospitalId, userCoords, matches, stopNavigation])
 
-  // Interpolate between path points for smooth animation
-  function interpolatePath(points, totalSteps) {
-    if (points.length < 2) return points
-
-    // Calculate cumulative distances
-    const distances = [0]
-    for (let i = 1; i < points.length; i++) {
-      const d = haversine(points[i - 1], points[i])
-      distances.push(distances[i - 1] + d)
-    }
-    const totalDist = distances[distances.length - 1]
-    if (totalDist === 0) return points
-
-    const result = []
-    for (let s = 0; s <= totalSteps; s++) {
-      const targetDist = (s / totalSteps) * totalDist
-      // Find which segment this falls on
-      let segIdx = 0
-      for (let i = 1; i < distances.length; i++) {
-        if (distances[i] >= targetDist) {
-          segIdx = i - 1
-          break
-        }
-      }
-      const segLen = distances[segIdx + 1] - distances[segIdx]
-      const t = segLen > 0 ? (targetDist - distances[segIdx]) / segLen : 0
-      result.push({
-        lat: points[segIdx].lat + t * (points[segIdx + 1].lat - points[segIdx].lat),
-        lng: points[segIdx].lng + t * (points[segIdx + 1].lng - points[segIdx].lng),
-      })
-    }
-    return result
-  }
-
-  function haversine(a, b) {
-    const R = 6371
-    const dLat = ((b.lat - a.lat) * Math.PI) / 180
-    const dLng = ((b.lng - a.lng) * Math.PI) / 180
-    const sinLat = Math.sin(dLat / 2)
-    const sinLng = Math.sin(dLng / 2)
-    const h =
-      sinLat * sinLat +
-      Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * sinLng * sinLng
-    return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h))
-  }
-
-  const startNavigation = () => {
+  const startNavigation = useCallback(() => {
     if (routeSteps.length === 0) return
     setIsNavigating(true)
     stepIndexRef.current = 0
     setLivePosition(routeSteps[0])
-    animateStep()
-  }
 
-  const animateStep = () => {
     animationRef.current = setInterval(() => {
       stepIndexRef.current += 1
       if (stepIndexRef.current >= routeSteps.length) {
@@ -160,44 +222,48 @@ export default function MapView({ userCoords, matches, selectedHospitalId, onSel
       const pos = routeSteps[stepIndexRef.current]
       setLivePosition(pos)
 
-      // Calculate remaining ETA
       const remaining = routeSteps.length - stepIndexRef.current
       const totalSec = routeSteps.length > 0 ? (remaining / routeSteps.length) : 0
-      // We approximate ETA from the original route duration
       setEta(
         remaining > 0
-          ? `~${Math.max(1, Math.round(totalSec * parseDurationToMin(routeSummary)))} min remaining`
+          ? `~${Math.max(1, Math.round(totalSec * parseDurationToMin(routeSummaryRef.current)))} min remaining`
           : 'Arrived!'
       )
 
-      // Pan map to follow
       if (mapRef.current) {
         mapRef.current.panTo(pos)
       }
-    }, 150) // Move every 150ms for smooth animation
-  }
-
-  const stopNavigation = () => {
-    if (animationRef.current) {
-      clearInterval(animationRef.current)
-      animationRef.current = null
-    }
-    setIsNavigating(false)
-  }
-
-  function parseDurationToMin(summary) {
-    if (!summary) return 10
-    const match = summary.match(/(\d+)\s*min/)
-    if (match) return parseInt(match[1], 10)
-    const hourMatch = summary.match(/(\d+)\s*hour/)
-    if (hourMatch) return parseInt(hourMatch[1], 10) * 60
-    return 10
-  }
+    }, 150)
+  }, [routeSteps, stopNavigation])
 
   // Cleanup on unmount
   useEffect(() => {
     return () => stopNavigation()
-  }, [])
+  }, [stopNavigation])
+
+  // Memoize icon objects to avoid re-creating on every render
+  const userIcon = useMemo(() => {
+    if (!isLoaded) return undefined
+    return {
+      url: USER_ICON_URL,
+      scaledSize: new window.google.maps.Size(36, 36),
+      anchor: new window.google.maps.Point(18, 18),
+    }
+  }, [isLoaded])
+
+  const ambulanceIcon = useMemo(() => {
+    if (!isLoaded) return undefined
+    return {
+      url: AMBULANCE_ICON_URL,
+      scaledSize: new window.google.maps.Size(44, 44),
+      anchor: new window.google.maps.Point(22, 22),
+    }
+  }, [isLoaded])
+
+  const selectedHospital = useMemo(
+    () => matches?.find((m) => m.hospital.id === selectedHospitalId)?.hospital,
+    [matches, selectedHospitalId]
+  )
 
   if (loadError) {
     return (
@@ -214,8 +280,6 @@ export default function MapView({ userCoords, matches, selectedHospitalId, onSel
       </output>
     )
   }
-
-  const selectedHospital = matches?.find((m) => m.hospital.id === selectedHospitalId)?.hospital
 
   return (
     <section className="bg-white rounded-xl shadow-md p-4 space-y-3" aria-label="Route map">
@@ -268,27 +332,13 @@ export default function MapView({ userCoords, matches, selectedHospitalId, onSel
         center={center}
         zoom={13}
         onLoad={onMapLoad}
-        options={{
-          zoomControl: true,
-          streetViewControl: false,
-          mapTypeControl: false,
-          fullscreenControl: true,
-        }}
+        options={MAP_OPTIONS}
       >
         {/* User location marker */}
         {userCoords && !isNavigating && (
           <Marker
             position={userCoords}
-            icon={{
-              url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
-                `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="36" height="36">
-                  <circle cx="12" cy="12" r="10" fill="#4F46E5" stroke="white" stroke-width="2"/>
-                  <circle cx="12" cy="12" r="4" fill="white"/>
-                </svg>`
-              ),
-              scaledSize: new window.google.maps.Size(36, 36),
-              anchor: new window.google.maps.Point(18, 18),
-            }}
+            icon={userIcon}
             onClick={() => setActiveInfo('user')}
           />
         )}
@@ -297,16 +347,7 @@ export default function MapView({ userCoords, matches, selectedHospitalId, onSel
         {livePosition && isNavigating && (
           <Marker
             position={livePosition}
-            icon={{
-              url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
-                `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="44" height="44">
-                  <circle cx="20" cy="20" r="18" fill="#DC2626" stroke="white" stroke-width="3"/>
-                  <text x="20" y="26" text-anchor="middle" font-size="18">🚑</text>
-                </svg>`
-              ),
-              scaledSize: new window.google.maps.Size(44, 44),
-              anchor: new window.google.maps.Point(22, 22),
-            }}
+            icon={ambulanceIcon}
             zIndex={1000}
           />
         )}
@@ -320,12 +361,7 @@ export default function MapView({ userCoords, matches, selectedHospitalId, onSel
               lng: match.hospital.location.lng,
             }}
             icon={{
-              url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
-                `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 40" width="32" height="40">
-                  <path d="M16 0C7.2 0 0 7.2 0 16c0 12 16 24 16 24s16-12 16-24C32 7.2 24.8 0 16 0z" fill="${match.hospital.id === selectedHospitalId ? '#059669' : '#4F46E5'}"/>
-                  <text x="16" y="20" text-anchor="middle" font-size="14" fill="white">🏥</text>
-                </svg>`
-              ),
+              url: match.hospital.id === selectedHospitalId ? HOSPITAL_ICON_SELECTED : HOSPITAL_ICON_DEFAULT,
               scaledSize: new window.google.maps.Size(32, 40),
               anchor: new window.google.maps.Point(16, 40),
             }}
@@ -382,14 +418,7 @@ export default function MapView({ userCoords, matches, selectedHospitalId, onSel
         {directions && (
           <DirectionsRenderer
             directions={directions}
-            options={{
-              polylineOptions: {
-                strokeColor: '#4F46E5',
-                strokeWeight: 5,
-                strokeOpacity: 0.8,
-              },
-              suppressMarkers: true,
-            }}
+            options={ROUTE_OPTIONS}
           />
         )}
       </GoogleMap>

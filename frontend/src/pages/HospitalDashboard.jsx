@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   GoogleMap,
   useJsApiLoader,
@@ -12,6 +12,34 @@ import { useNavigate } from 'react-router-dom'
 
 const LIBRARIES = ['places']
 const MAP_STYLE = { width: '100%', height: '400px', borderRadius: '12px' }
+const MAP_OPTIONS = {
+  zoomControl: true,
+  streetViewControl: false,
+  mapTypeControl: false,
+  fullscreenControl: true,
+}
+const ROUTE_OPTIONS = {
+  polylineOptions: {
+    strokeColor: '#4F46E5',
+    strokeWeight: 4,
+    strokeOpacity: 0.8,
+  },
+  suppressMarkers: true,
+}
+
+// Pre-encode SVG icon URLs at module level
+const HOSPITAL_MARKER_URL = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 40" width="32" height="40">
+    <path d="M16 0C7.2 0 0 7.2 0 16c0 12 16 24 16 24s16-12 16-24C32 7.2 24.8 0 16 0z" fill="#059669"/>
+    <text x="16" y="20" text-anchor="middle" font-size="14" fill="white">H</text>
+  </svg>`
+)
+const USER_MARKER_URL = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="44" height="44">
+    <circle cx="20" cy="20" r="18" fill="#DC2626" stroke="white" stroke-width="3"/>
+    <circle cx="20" cy="20" r="6" fill="white"/>
+  </svg>`
+)
 
 export default function HospitalDashboard() {
   const { user, logout } = useAuth()
@@ -31,11 +59,27 @@ export default function HospitalDashboard() {
   const pollRef = useRef(null)
   const alertPollRef = useRef(null)
   const mapRef = useRef(null)
+  const selectedHospitalRef = useRef(null)
+  const directionsServiceRef = useRef(null)
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
     libraries: LIBRARIES,
   })
+
+  // Keep ref in sync for stable callbacks
+  useEffect(() => { selectedHospitalRef.current = selectedHospital }, [selectedHospital])
+
+  const fetchHospitals = useCallback(async () => {
+    try {
+      const res = await getHospitals()
+      setHospitals(res.data)
+    } catch {
+      setError('Failed to load hospitals.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     if (!user) {
@@ -43,7 +87,16 @@ export default function HospitalDashboard() {
       return
     }
     fetchHospitals()
-  }, [user])
+  }, [user, navigate, fetchHospitals])
+
+  const fetchAlerts = useCallback(async (hospitalId) => {
+    try {
+      const res = await apiClient.get(`/alerts/${hospitalId}`)
+      setAlerts(res.data)
+    } catch {
+      // silent fail for polling
+    }
+  }, [])
 
   // Poll alerts every 5 seconds when a hospital is selected
   useEffect(() => {
@@ -51,7 +104,7 @@ export default function HospitalDashboard() {
     fetchAlerts(selectedHospital.id)
     alertPollRef.current = setInterval(() => fetchAlerts(selectedHospital.id), 5000)
     return () => clearInterval(alertPollRef.current)
-  }, [selectedHospital])
+  }, [selectedHospital, fetchAlerts])
 
   // Cleanup polls on unmount
   useEffect(() => {
@@ -61,63 +114,37 @@ export default function HospitalDashboard() {
     }
   }, [])
 
-  const fetchHospitals = async () => {
-    try {
-      const res = await getHospitals()
-      setHospitals(res.data)
-    } catch {
-      setError('Failed to load hospitals.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchAlerts = async (hospitalId) => {
-    try {
-      const res = await apiClient.get(`/alerts/${hospitalId}`)
-      setAlerts(res.data)
-    } catch {
-      // silent fail for polling
-    }
-  }
-
-  const selectHospital = (hospital) => {
-    setSelectedHospital(hospital)
-    stopTracking()
-  }
-
-  // --- Live location tracking ---
-  const startTracking = (alertId) => {
-    setTrackedAlertId(alertId)
-    setLiveUserPos(null)
-    setDirections(null)
-    pollLiveLocation(alertId)
-    pollRef.current = setInterval(() => pollLiveLocation(alertId), 3000)
-  }
-
-  const stopTracking = () => {
+  const stopTracking = useCallback(() => {
     if (pollRef.current) clearInterval(pollRef.current)
     pollRef.current = null
     setTrackedAlertId(null)
     setLiveUserPos(null)
     setDirections(null)
-  }
+  }, [])
 
-  const pollLiveLocation = async (alertId) => {
+  const selectHospital = useCallback((hospital) => {
+    setSelectedHospital(hospital)
+    stopTracking()
+  }, [stopTracking])
+
+  // --- Live location tracking ---
+  const pollLiveLocation = useCallback(async (alertId) => {
     try {
       const res = await apiClient.get(`/live-location/${alertId}`)
       if (res.data.lat != null && res.data.lng != null) {
         const pos = { lat: res.data.lat, lng: res.data.lng }
         setLiveUserPos(pos)
-        // Fetch route from user to hospital
-        if (isLoaded && selectedHospital) {
-          const directionsService = new window.google.maps.DirectionsService()
-          directionsService.route(
+        const hospital = selectedHospitalRef.current
+        if (isLoaded && hospital) {
+          if (!directionsServiceRef.current) {
+            directionsServiceRef.current = new window.google.maps.DirectionsService()
+          }
+          directionsServiceRef.current.route(
             {
               origin: new window.google.maps.LatLng(pos.lat, pos.lng),
               destination: new window.google.maps.LatLng(
-                selectedHospital.location.lat,
-                selectedHospital.location.lng
+                hospital.location.lat,
+                hospital.location.lng
               ),
               travelMode: window.google.maps.TravelMode.DRIVING,
             },
@@ -130,16 +157,43 @@ export default function HospitalDashboard() {
     } catch {
       // silent
     }
-  }
+  }, [isLoaded])
+
+  const startTracking = useCallback((alertId) => {
+    setTrackedAlertId(alertId)
+    setLiveUserPos(null)
+    setDirections(null)
+    pollLiveLocation(alertId)
+    pollRef.current = setInterval(() => pollLiveLocation(alertId), 3000)
+  }, [pollLiveLocation])
 
   const onMapLoad = useCallback((map) => {
     mapRef.current = map
   }, [])
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await logout()
     navigate('/hospital/auth')
-  }
+  }, [logout, navigate])
+
+  // Memoize icon objects for the map markers
+  const hospitalMarkerIcon = useMemo(() => {
+    if (!isLoaded) return undefined
+    return {
+      url: HOSPITAL_MARKER_URL,
+      scaledSize: new window.google.maps.Size(32, 40),
+      anchor: new window.google.maps.Point(16, 40),
+    }
+  }, [isLoaded])
+
+  const userMarkerIcon = useMemo(() => {
+    if (!isLoaded) return undefined
+    return {
+      url: USER_MARKER_URL,
+      scaledSize: new window.google.maps.Size(44, 44),
+      anchor: new window.google.maps.Point(22, 22),
+    }
+  }, [isLoaded])
 
   if (!user) return null
 
@@ -339,12 +393,7 @@ export default function HospitalDashboard() {
                     }}
                     zoom={13}
                     onLoad={onMapLoad}
-                    options={{
-                      zoomControl: true,
-                      streetViewControl: false,
-                      mapTypeControl: false,
-                      fullscreenControl: true,
-                    }}
+                    options={MAP_OPTIONS}
                   >
                     {/* Hospital marker */}
                     <Marker
@@ -352,16 +401,7 @@ export default function HospitalDashboard() {
                         lat: selectedHospital.location.lat,
                         lng: selectedHospital.location.lng,
                       }}
-                      icon={{
-                        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
-                          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 40" width="32" height="40">
-                            <path d="M16 0C7.2 0 0 7.2 0 16c0 12 16 24 16 24s16-12 16-24C32 7.2 24.8 0 16 0z" fill="#059669"/>
-                            <text x="16" y="20" text-anchor="middle" font-size="14" fill="white">H</text>
-                          </svg>`
-                        ),
-                        scaledSize: isLoaded ? new window.google.maps.Size(32, 40) : undefined,
-                        anchor: isLoaded ? new window.google.maps.Point(16, 40) : undefined,
-                      }}
+                      icon={hospitalMarkerIcon}
                       onClick={() => setMapInfoOpen('hospital')}
                     />
                     {mapInfoOpen === 'hospital' && (
@@ -382,16 +422,7 @@ export default function HospitalDashboard() {
                     {liveUserPos && (
                       <Marker
                         position={liveUserPos}
-                        icon={{
-                          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
-                            `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="44" height="44">
-                              <circle cx="20" cy="20" r="18" fill="#DC2626" stroke="white" stroke-width="3"/>
-                              <circle cx="20" cy="20" r="6" fill="white"/>
-                            </svg>`
-                          ),
-                          scaledSize: isLoaded ? new window.google.maps.Size(44, 44) : undefined,
-                          anchor: isLoaded ? new window.google.maps.Point(22, 22) : undefined,
-                        }}
+                        icon={userMarkerIcon}
                         zIndex={1000}
                         onClick={() => setMapInfoOpen('user')}
                       />
@@ -411,14 +442,7 @@ export default function HospitalDashboard() {
                     {directions && (
                       <DirectionsRenderer
                         directions={directions}
-                        options={{
-                          polylineOptions: {
-                            strokeColor: '#DC2626',
-                            strokeWeight: 5,
-                            strokeOpacity: 0.8,
-                          },
-                          suppressMarkers: true,
-                        }}
+                        options={ROUTE_OPTIONS}
                       />
                     )}
                   </GoogleMap>

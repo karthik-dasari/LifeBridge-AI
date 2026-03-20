@@ -1,3 +1,5 @@
+import { memo } from 'react'
+
 const SEVERITY_COLORS = {
   critical: 'bg-red-100 text-red-800 border-red-300',
   high: 'bg-orange-100 text-orange-800 border-orange-300',
@@ -5,7 +7,7 @@ const SEVERITY_COLORS = {
   low: 'bg-green-100 text-green-800 border-green-300',
 }
 
-export default function AnalysisResult({ analysis }) {
+export default memo(function AnalysisResult({ analysis }) {
   if (!analysis) return null
 
   const severityClass = SEVERITY_COLORS[analysis.severity] || SEVERITY_COLORS.moderate
@@ -55,4 +57,4 @@ export default function AnalysisResult({ analysis }) {
       </div>
     </section>
   )
-}
+})

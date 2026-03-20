@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -21,12 +21,14 @@ export function AuthProvider({ children }) {
     return unsub
   }, [])
 
-  const login = (email, password) => signInWithEmailAndPassword(auth, email, password)
-  const register = (email, password) => createUserWithEmailAndPassword(auth, email, password)
-  const logout = () => signOut(auth)
+  const login = useCallback((email, password) => signInWithEmailAndPassword(auth, email, password), [])
+  const register = useCallback((email, password) => createUserWithEmailAndPassword(auth, email, password), [])
+  const logout = useCallback(() => signOut(auth), [])
+
+  const value = useMemo(() => ({ user, loading, login, register, logout }), [user, loading, login, register, logout])
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   )

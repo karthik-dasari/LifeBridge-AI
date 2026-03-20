@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 
-export default function EmergencyForm({ onAnalyze, loading }) {
+export default memo(function EmergencyForm({ onAnalyze, loading }) {
   const [inputText, setInputText] = useState('')
   const [location, setLocation] = useState('')
   const [coords, setCoords] = useState(null)
@@ -12,7 +12,7 @@ export default function EmergencyForm({ onAnalyze, loading }) {
     detectLocation()
   }, [])
 
-  const detectLocation = () => {
+  const detectLocation = useCallback(() => {
     if (!navigator.geolocation) {
       setLocError('Geolocation is not supported by your browser')
       return
@@ -34,9 +34,9 @@ export default function EmergencyForm({ onAnalyze, loading }) {
       },
       { enableHighAccuracy: true, timeout: 10000 }
     )
-  }
+  }, [])
 
-  const handleSubmit = (e) => {
+  const handleSubmit = useCallback((e) => {
     e.preventDefault()
     if (!inputText.trim()) return
     const payload = { input_text: inputText, location: location || 'Hyderabad' }
@@ -45,7 +45,7 @@ export default function EmergencyForm({ onAnalyze, loading }) {
       payload.lng = coords.lng
     }
     onAnalyze(payload)
-  }
+  }, [inputText, location, coords, onAnalyze])
 
   return (
     <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md p-6 space-y-4" aria-label="Emergency description form">
@@ -152,4 +152,4 @@ export default function EmergencyForm({ onAnalyze, loading }) {
       </button>
     </form>
   )
-}
+})

@@ -1,6 +1,7 @@
+import { memo } from 'react'
 import HospitalCard from './HospitalCard'
 
-export default function HospitalList({ matches, onAlert, alertedHospitals, selectedHospitalId, onShowRoute }) {
+export default memo(function HospitalList({ matches, onAlert, alertedHospitals, selectedHospitalId, onShowRoute }) {
   if (!matches || matches.length === 0) return null
 
   return (
@@ -22,4 +23,4 @@ export default function HospitalList({ matches, onAlert, alertedHospitals, selec
       </div>
     </section>
   )
-}
+})

@@ -1,9 +1,11 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import Navbar from './components/Navbar'
-import UserPage from './pages/UserPage'
-import HospitalDashboard from './pages/HospitalDashboard'
-import HospitalAuth from './pages/HospitalAuth'
+
+const UserPage = lazy(() => import('./pages/UserPage'))
+const HospitalDashboard = lazy(() => import('./pages/HospitalDashboard'))
+const HospitalAuth = lazy(() => import('./pages/HospitalAuth'))
 
 function App() {
   return (
@@ -18,11 +20,13 @@ function App() {
           </a>
           <Navbar />
           <main id="main-content">
-            <Routes>
-              <Route path="/" element={<UserPage />} />
-              <Route path="/hospital" element={<HospitalDashboard />} />
-              <Route path="/hospital/auth" element={<HospitalAuth />} />
-            </Routes>
+            <Suspense fallback={<div className="flex items-center justify-center py-20 text-gray-500">Loading...</div>}>
+              <Routes>
+                <Route path="/" element={<UserPage />} />
+                <Route path="/hospital" element={<HospitalDashboard />} />
+                <Route path="/hospital/auth" element={<HospitalAuth />} />
+              </Routes>
+            </Suspense>
           </main>
         </div>
       </Router>

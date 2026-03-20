@@ -1,13 +1,15 @@
-export default function HospitalCard({ match, onAlert, alertSent, isRouteSelected, onShowRoute }) {
+import { memo } from 'react'
+
+const MATCH_BADGE = {
+  exact: { label: 'Best Match', color: 'bg-green-100 text-green-800' },
+  partial: { label: 'Partial Match', color: 'bg-yellow-100 text-yellow-800' },
+  nearest: { label: 'Nearest', color: 'bg-blue-100 text-blue-800' },
+}
+
+export default memo(function HospitalCard({ match, onAlert, alertSent, isRouteSelected, onShowRoute }) {
   const { hospital, match_score, distance_km, match_type } = match
 
-  const matchBadge = {
-    exact: { label: 'Best Match', color: 'bg-green-100 text-green-800' },
-    partial: { label: 'Partial Match', color: 'bg-yellow-100 text-yellow-800' },
-    nearest: { label: 'Nearest', color: 'bg-blue-100 text-blue-800' },
-  }
-
-  const badge = matchBadge[match_type] || matchBadge.nearest
+  const badge = MATCH_BADGE[match_type] || MATCH_BADGE.nearest
 
   return (
     <article className="bg-white rounded-xl shadow-md p-5 border border-gray-100 hover:shadow-lg transition-shadow" aria-label={`${hospital.name} - ${distance_km} km away`}>
@@ -86,4 +88,4 @@ export default function HospitalCard({ match, onAlert, alertSent, isRouteSelecte
       </div>
     </article>
   )
-}
+})

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { analyzeEmergency, matchHospitals, alertHospital, updateLiveLocation } from '../api'
 import EmergencyForm from '../components/EmergencyForm'
 import AnalysisResult from '../components/AnalysisResult'
@@ -16,8 +16,31 @@ export default function UserPage() {
   const [selectedHospitalId, setSelectedHospitalId] = useState(null)
   const [activeAlertId, setActiveAlertId] = useState(null)
   const locationWatchRef = useRef(null)
+  const analysisRef = useRef(null)
+  const userCoordsRef = useRef(null)
 
-  const handleAnalyze = async (data) => {
+  // Keep refs in sync for stable callbacks
+  useEffect(() => { analysisRef.current = analysis }, [analysis])
+  useEffect(() => { userCoordsRef.current = userCoords }, [userCoords])
+
+  const startLocationBroadcast = useCallback((alertId) => {
+    if (locationWatchRef.current != null) {
+      navigator.geolocation.clearWatch(locationWatchRef.current)
+    }
+    if (!navigator.geolocation) return
+
+    locationWatchRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords
+        setUserCoords({ lat: latitude, lng: longitude })
+        updateLiveLocation(alertId, latitude, longitude).catch(() => {})
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 2000 }
+    )
+  }, [])
+
+  const handleAnalyze = useCallback(async (data) => {
     setError('')
     setAnalysis(null)
     setMatches([])
@@ -25,7 +48,6 @@ export default function UserPage() {
     setSelectedHospitalId(null)
     setLoading(true)
 
-    // Store user coordinates for map
     if (data.lat != null && data.lng != null) {
       setUserCoords({ lat: data.lat, lng: data.lng })
     }
@@ -35,7 +57,6 @@ export default function UserPage() {
       const result = res.data
       setAnalysis(result)
 
-      // Auto-match hospitals
       setMatching(true)
       const matchPayload = {
         required_facilities: result.required_facilities,
@@ -55,50 +76,31 @@ export default function UserPage() {
       setLoading(false)
       setMatching(false)
     }
-  }
+  }, [])
 
-  const handleAlert = async (hospitalId) => {
-    if (!analysis) return
+  const handleAlert = useCallback(async (hospitalId) => {
+    if (!analysisRef.current) return
     try {
       const payload = {
         hospital_id: hospitalId,
-        emergency: analysis.emergency_type,
+        emergency: analysisRef.current.emergency_type,
         eta: '10 mins',
-        requirements: analysis.required_facilities,
+        requirements: analysisRef.current.required_facilities,
       }
-      if (userCoords) {
-        payload.user_lat = userCoords.lat
-        payload.user_lng = userCoords.lng
+      if (userCoordsRef.current) {
+        payload.user_lat = userCoordsRef.current.lat
+        payload.user_lng = userCoordsRef.current.lng
       }
       const res = await alertHospital(payload)
       const alertId = res.data.alert_id
       setAlertedHospitals((prev) => new Set(prev).add(hospitalId))
       setActiveAlertId(alertId)
 
-      // Start broadcasting live location for this alert
       startLocationBroadcast(alertId)
     } catch {
       setError('Failed to send alert.')
     }
-  }
-
-  const startLocationBroadcast = (alertId) => {
-    // Stop any previous watch
-    if (locationWatchRef.current != null) {
-      navigator.geolocation.clearWatch(locationWatchRef.current)
-    }
-    if (!navigator.geolocation) return
-
-    locationWatchRef.current = navigator.geolocation.watchPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords
-        setUserCoords({ lat: latitude, lng: longitude })
-        updateLiveLocation(alertId, latitude, longitude).catch(() => {})
-      },
-      () => {},
-      { enableHighAccuracy: true, maximumAge: 2000 }
-    )
-  }
+  }, [startLocationBroadcast])
 
   // Cleanup location watch on unmount
   useEffect(() => {
