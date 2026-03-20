@@ -1,10 +1,8 @@
-import os
-
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
 import logging
 import google.cloud.logging
+import os
 import time
 from collections import defaultdict
 
@@ -12,7 +10,7 @@ try:
     project_id = os.getenv("GCP_PROJECT_ID", "promptwars-hackathon-490805")
     client = google.cloud.logging.Client(project=project_id)
     client.setup_logging()
-    logging.getLogger("uvicorn.access").info("Cloud Logging attached!")
+    logging.info("Cloud Logging attached!")
 except Exception as e:
     logging.warning(f"Failed to attach Cloud Logging: {e}")
 
@@ -29,8 +27,8 @@ app = FastAPI(
 # --- CORS: restrict to known origins ---
 _allowed_origins = os.getenv(
     "ALLOWED_ORIGINS",
-    "http://localhost:5173,http://localhost:8080,https://promptwars-hackathon-490805.web.app,https://promptwars-hackathon-490805.firebaseapp.com",
-).split(",")
+    "http://localhost:5173;http://localhost:8080;https://promptwars-hackathon-490805.web.app;https://promptwars-hackathon-490805.firebaseapp.com",
+).split(";")
 
 app.add_middleware(
     CORSMiddleware,
@@ -41,10 +39,11 @@ app.add_middleware(
 )
 
 # --- Trusted Host middleware ---
-_allowed_hosts = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
-if os.getenv("ENVIRONMENT") != "production":
-    _allowed_hosts.append("testserver")
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=_allowed_hosts)
+# Removed to avoid issues with Cloud Run ingress and Starlette wildcard assertions
+# _allowed_hosts = os.getenv("ALLOWED_HOSTS", "localhost;127.0.0.1").split(";")
+# if os.getenv("ENVIRONMENT") != "production":
+#     _allowed_hosts.append("testserver")
+# app.add_middleware(TrustedHostMiddleware, allowed_hosts=_allowed_hosts)
 
 
 # --- Security headers middleware ---
