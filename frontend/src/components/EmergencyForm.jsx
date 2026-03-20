@@ -48,44 +48,52 @@ export default function EmergencyForm({ onAnalyze, loading }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md p-6 space-y-4">
+    <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md p-6 space-y-4" aria-label="Emergency description form">
       <h2 className="text-lg font-semibold text-gray-800">Describe Your Emergency</h2>
 
       {/* Input mode toggle */}
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setInputMode('text')}
-          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-            inputMode === 'text'
-              ? 'bg-indigo-600 text-white'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
-        >
-          ✏️ Text Input
-        </button>
-        <button
-          type="button"
-          onClick={() => setInputMode('voice')}
-          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-            inputMode === 'voice'
-              ? 'bg-indigo-600 text-white'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
-        >
-          🎤 Voice (Simulated)
-        </button>
-      </div>
+      <fieldset>
+        <legend className="sr-only">Input method</legend>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setInputMode('text')}
+            aria-pressed={inputMode === 'text'}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              inputMode === 'text'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <span aria-hidden="true">✏️</span> Text Input
+          </button>
+          <button
+            type="button"
+            onClick={() => setInputMode('voice')}
+            aria-pressed={inputMode === 'voice'}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              inputMode === 'voice'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <span aria-hidden="true">🎤</span> Voice (Simulated)
+          </button>
+        </div>
+      </fieldset>
 
       {/* Emergency input */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="emergency-input" className="block text-sm font-medium text-gray-700 mb-1">
           {inputMode === 'voice' ? 'Voice Transcript' : 'Emergency Description'}
         </label>
         <textarea
+          id="emergency-input"
           rows={3}
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
+          required
+          aria-required="true"
           placeholder={
             inputMode === 'voice'
               ? 'Paste or type voice transcript here...'
@@ -97,9 +105,10 @@ export default function EmergencyForm({ onAnalyze, loading }) {
 
       {/* Location */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+        <label htmlFor="location-input" className="block text-sm font-medium text-gray-700 mb-1">Location</label>
         <div className="flex gap-2">
           <input
+            id="location-input"
             type="text"
             value={location}
             onChange={(e) => {
@@ -113,17 +122,18 @@ export default function EmergencyForm({ onAnalyze, loading }) {
             type="button"
             onClick={detectLocation}
             disabled={locating}
+            aria-label={locating ? 'Detecting GPS location' : 'Use GPS to detect location'}
             className="px-3 py-2 rounded-lg text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors flex items-center gap-1 whitespace-nowrap disabled:opacity-50"
           >
-            {locating ? '⏳ Detecting...' : '📍 Use GPS'}
+            {locating ? (<><span aria-hidden="true">⏳</span> Detecting...</>) : (<><span aria-hidden="true">📍</span> Use GPS</>)}
           </button>
         </div>
         {coords && (
-          <p className="text-xs text-green-600 mt-1">
-            📍 GPS location detected ({coords.lat.toFixed(4)}, {coords.lng.toFixed(4)})
-          </p>
+          <output className="text-xs text-green-600 mt-1 block">
+            <span aria-hidden="true">📍</span> GPS location detected ({coords.lat.toFixed(4)}, {coords.lng.toFixed(4)})
+          </output>
         )}
-        {locError && <p className="text-xs text-amber-600 mt-1">{locError}</p>}
+        {locError && <p className="text-xs text-amber-600 mt-1" role="alert">{locError}</p>}
       </div>
 
       <button
@@ -133,10 +143,10 @@ export default function EmergencyForm({ onAnalyze, loading }) {
       >
         {loading ? (
           <>
-            <span className="animate-spin">⏳</span> Analyzing...
+            <span className="animate-spin" aria-hidden="true">⏳</span> Analyzing...
           </>
         ) : (
-          <>🚨 Analyze Emergency</>
+          <><span aria-hidden="true">🚨</span> Analyze Emergency</>
         )}
       </button>
     </form>

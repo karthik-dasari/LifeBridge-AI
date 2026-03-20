@@ -4,9 +4,9 @@ export default function HospitalList({ matches, onAlert, alertedHospitals, selec
   if (!matches || matches.length === 0) return null
 
   return (
-    <div className="space-y-4">
+    <section className="space-y-4" aria-label="Recommended hospitals">
       <h2 className="text-lg font-semibold text-gray-800">
-        🏥 Recommended Hospitals ({matches.length})
+        <span aria-hidden="true">🏥</span> Recommended Hospitals ({matches.length})
       </h2>
       <div className="grid gap-4 md:grid-cols-2">
         {matches.map((match) => (
@@ -20,6 +20,6 @@ export default function HospitalList({ matches, onAlert, alertedHospitals, selec
           />
         ))}
       </div>
-    </div>
+    </section>
   )
 }

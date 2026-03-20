@@ -13,22 +13,27 @@ export default function Navbar() {
     }`
 
   return (
-    <nav className="bg-indigo-600 shadow-lg">
+    <nav className="bg-indigo-600 shadow-lg" aria-label="Main navigation">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center gap-2">
-            <span className="text-2xl">🏥</span>
+          <Link to="/" className="flex items-center gap-2" aria-label="LifeBridge AI Home">
+            <span className="text-2xl" aria-hidden="true">🏥</span>
             <span className="text-white text-xl font-bold">LifeBridge AI</span>
           </Link>
           <div className="flex gap-2 items-center">
-            <Link to="/" className={linkClass('/')}>
+            <Link to="/" className={linkClass('/')} aria-current={location.pathname === '/' ? 'page' : undefined}>
               Emergency
             </Link>
             <Link
               to={user ? '/hospital' : '/hospital/auth'}
               className={linkClass(user ? '/hospital' : '/hospital/auth')}
+              aria-current={location.pathname === (user ? '/hospital' : '/hospital/auth') ? 'page' : undefined}
             >
-              {user ? '📊 Dashboard' : '🔐 Hospital Login'}
+              {user ? (
+                <><span aria-hidden="true">📊</span> Dashboard</>
+              ) : (
+                <><span aria-hidden="true">🔐</span> Hospital Login</>
+              )}
             </Link>
           </div>
         </div>

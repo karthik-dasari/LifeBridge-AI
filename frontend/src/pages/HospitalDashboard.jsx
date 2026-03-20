@@ -145,9 +145,9 @@ export default function HospitalDashboard() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-8 text-center text-gray-500">
+      <output className="max-w-6xl mx-auto px-4 py-8 text-center text-gray-500 block">
         Loading hospitals...
-      </div>
+      </output>
     )
   }
 
@@ -158,19 +158,20 @@ export default function HospitalDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">🏥 Hospital Dashboard</h1>
+          <h1 className="text-3xl font-bold text-gray-900"><span aria-hidden="true">🏥</span> Hospital Dashboard</h1>
           <p className="text-sm text-gray-500 mt-1">Logged in as {user.email}</p>
         </div>
         <button
           onClick={handleLogout}
+          aria-label="Logout from hospital dashboard"
           className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors"
         >
-          🚪 Logout
+          <span aria-hidden="true">🚪</span> Logout
         </button>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 text-sm mb-4">
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 text-sm mb-4" role="alert">
           {error}
         </div>
       )}
@@ -183,6 +184,8 @@ export default function HospitalDashboard() {
             <button
               key={h.id}
               onClick={() => selectHospital(h)}
+              aria-pressed={selectedHospital?.id === h.id}
+              aria-label={`Select ${h.name}`}
               className={`w-full text-left p-4 rounded-xl border transition-all ${
                 selectedHospital?.id === h.id
                   ? 'border-indigo-500 bg-indigo-50 shadow-md'
@@ -191,7 +194,7 @@ export default function HospitalDashboard() {
             >
               <h3 className="font-semibold text-gray-900">{h.name}</h3>
               <p className="text-xs text-gray-500 mt-1">
-                📍 {h.location.lat.toFixed(4)}, {h.location.lng.toFixed(4)}
+                <span aria-hidden="true">📍</span> {h.location.lat.toFixed(4)}, {h.location.lng.toFixed(4)}
               </p>
               <div className="flex flex-wrap gap-1 mt-2">
                 {h.facilities.slice(0, 3).map((f) => (
@@ -224,8 +227,8 @@ export default function HospitalDashboard() {
                   <div>
                     <p className="text-xs text-gray-500 uppercase tracking-wide">Availability</p>
                     <p className="text-sm text-gray-700">
-                      🛏️ ICU: <strong>{selectedHospital.availability.icu_beds}</strong> &nbsp;|&nbsp;
-                      🚑 Emergency: <strong>{selectedHospital.availability.emergency_slots}</strong>
+                      <span aria-hidden="true">🛏️</span> ICU: <strong>{selectedHospital.availability.icu_beds}</strong> &nbsp;|&nbsp;
+                      <span aria-hidden="true">🚑</span> Emergency: <strong>{selectedHospital.availability.emergency_slots}</strong>
                     </p>
                   </div>
                 </div>
@@ -245,8 +248,8 @@ export default function HospitalDashboard() {
               <div className="bg-white rounded-xl shadow-md p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-800">
-                    🔔 Incoming Alerts {alerts.length > 0 && (
-                      <span className="ml-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                    <span aria-hidden="true">🔔</span> Incoming Alerts {alerts.length > 0 && (
+                      <span className="ml-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full" aria-label={`${alerts.length} active alerts`}>
                         {alerts.length}
                       </span>
                     )}
@@ -272,12 +275,12 @@ export default function HospitalDashboard() {
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
                               <p className="font-semibold text-red-800 capitalize">
-                                🚨 {alert.emergency_type} Emergency
+                                <span aria-hidden="true">🚨</span> {alert.emergency_type} Emergency
                               </p>
                               <p className="text-sm text-gray-600 mt-1">ETA: {alert.eta}</p>
                               {alert.user_lat != null && (
                                 <p className="text-xs text-gray-500 mt-1">
-                                  📍 User at: {alert.user_lat?.toFixed(4)}, {alert.user_lng?.toFixed(4)}
+                                  <span aria-hidden="true">📍</span> User at: {alert.user_lat?.toFixed(4)}, {alert.user_lng?.toFixed(4)}
                                 </p>
                               )}
                               <div className="flex flex-wrap gap-1 mt-2">
@@ -292,13 +295,14 @@ export default function HospitalDashboard() {
                               <span className="text-xs text-gray-400">{alert.timestamp}</span>
                               <button
                                 onClick={() => isTracking ? stopTracking() : startTracking(alertId)}
+                                aria-label={isTracking ? 'Stop tracking this alert' : 'Track user location live'}
                                 className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${
                                   isTracking
                                     ? 'bg-red-100 text-red-700 hover:bg-red-200'
                                     : 'bg-green-600 text-white hover:bg-green-700'
                                 }`}
                               >
-                                {isTracking ? '⏹ Stop Tracking' : '📍 Track Live'}
+                                {isTracking ? (<><span aria-hidden="true">⏹</span> Stop Tracking</>) : (<><span aria-hidden="true">📍</span> Track Live</>)}
                               </button>
                             </div>
                           </div>
@@ -311,15 +315,15 @@ export default function HospitalDashboard() {
 
               {/* Live Location Map */}
               {trackedAlertId && isLoaded && (
-                <div className="bg-white rounded-xl shadow-md p-4 space-y-3">
+                <section className="bg-white rounded-xl shadow-md p-4 space-y-3" aria-label="Live user location tracking">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-gray-800">
-                      📡 Live User Location
+                      <span aria-hidden="true">📡</span> Live User Location
                     </h3>
                     {liveUserPos && (
-                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                        🟢 Tracking {trackedAlert?.emergency_type || 'emergency'}
-                      </span>
+                      <output className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                        <span aria-hidden="true">🟢</span> Tracking {trackedAlert?.emergency_type || 'emergency'}
+                      </output>
                     )}
                   </div>
 
@@ -422,19 +426,19 @@ export default function HospitalDashboard() {
                   {liveUserPos && directions && (
                     <div className="flex gap-4 text-sm text-gray-600">
                       <span>
-                        📏 {directions.routes?.[0]?.legs?.[0]?.distance?.text || '...'}
+                        <span aria-hidden="true">📏</span> {directions.routes?.[0]?.legs?.[0]?.distance?.text || '...'}
                       </span>
                       <span>
-                        ⏱️ ETA: {directions.routes?.[0]?.legs?.[0]?.duration?.text || '...'}
+                        <span aria-hidden="true">⏱️</span> ETA: {directions.routes?.[0]?.legs?.[0]?.duration?.text || '...'}
                       </span>
                     </div>
                   )}
-                </div>
+                </section>
               )}
             </>
           ) : (
             <div className="bg-white rounded-xl shadow-md p-12 text-center text-gray-400">
-              <p className="text-4xl mb-3">🏥</p>
+              <p className="text-4xl mb-3" aria-hidden="true">🏥</p>
               <p className="text-lg">Select a hospital to view details and alerts</p>
             </div>
           )}

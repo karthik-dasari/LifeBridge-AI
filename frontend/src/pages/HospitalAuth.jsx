@@ -49,7 +49,7 @@ export default function HospitalAuth() {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-lg p-8 space-y-6">
           <div className="text-center">
-            <span className="text-4xl">🏥</span>
+            <span className="text-4xl" aria-hidden="true">🏥</span>
             <h1 className="text-2xl font-bold text-gray-900 mt-2">
               {isLogin ? 'Hospital Login' : 'Register Hospital'}
             </h1>
@@ -61,47 +61,55 @@ export default function HospitalAuth() {
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
+            <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm" role="alert">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" aria-label={isLogin ? 'Hospital login form' : 'Hospital registration form'}>
             {!isLogin && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="hospital-name" className="block text-sm font-medium text-gray-700 mb-1">
                   Hospital Name
                 </label>
                 <input
+                  id="hospital-name"
                   type="text"
                   value={hospitalName}
                   onChange={(e) => setHospitalName(e.target.value)}
                   placeholder="e.g., Apollo Hospital"
+                  aria-required="true"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                 />
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label htmlFor="auth-email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
               <input
+                id="auth-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="hospital@example.com"
                 required
+                aria-required="true"
+                autoComplete="email"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <label htmlFor="auth-password" className="block text-sm font-medium text-gray-700 mb-1">Password</label>
               <input
+                id="auth-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
+                aria-required="true"
+                autoComplete={isLogin ? 'current-password' : 'new-password'}
                 minLength={6}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
               />
@@ -114,12 +122,12 @@ export default function HospitalAuth() {
             >
               {loading ? (
                 <>
-                  <span className="animate-spin">⏳</span> Please wait...
+                  <span className="animate-spin" aria-hidden="true">⏳</span> Please wait...
                 </>
               ) : isLogin ? (
-                '🔐 Sign In'
+                <><span aria-hidden="true">🔐</span> Sign In</>
               ) : (
-                '📋 Register'
+                <><span aria-hidden="true">📋</span> Register</>
               )}
             </button>
           </form>

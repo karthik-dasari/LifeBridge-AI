@@ -112,14 +112,14 @@ export default function UserPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
       <div className="text-center mb-2">
-        <h1 className="text-3xl font-bold text-gray-900">🚨 Emergency Response</h1>
-        <p className="text-gray-500 mt-1">Describe your emergency and we'll find the best hospital</p>
+        <h1 className="text-3xl font-bold text-gray-900"><span aria-hidden="true">🚨</span> Emergency Response</h1>
+        <p className="text-gray-500 mt-1">Describe your emergency and we&apos;ll find the best hospital</p>
       </div>
 
       <EmergencyForm onAnalyze={handleAnalyze} loading={loading} />
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 text-sm">
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 text-sm" role="alert">
           {error}
         </div>
       )}
@@ -127,10 +127,10 @@ export default function UserPage() {
       <AnalysisResult analysis={analysis} />
 
       {matching && (
-        <div className="text-center text-gray-500 py-4">
-          <span className="animate-spin inline-block mr-2">⏳</span>
+        <output className="text-center text-gray-500 py-4 block" aria-live="polite">
+          <span className="animate-spin inline-block mr-2" aria-hidden="true">⏳</span>
           Finding matching hospitals...
-        </div>
+        </output>
       )}
 
       <HospitalList

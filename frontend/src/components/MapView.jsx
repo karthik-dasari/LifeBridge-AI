@@ -201,7 +201,7 @@ export default function MapView({ userCoords, matches, selectedHospitalId, onSel
 
   if (loadError) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+      <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700" role="alert">
         Failed to load Google Maps. Please check your API key.
       </div>
     )
@@ -209,18 +209,18 @@ export default function MapView({ userCoords, matches, selectedHospitalId, onSel
 
   if (!isLoaded) {
     return (
-      <div className="bg-white rounded-xl shadow-md p-8 text-center text-gray-400">
-        <span className="animate-spin inline-block mr-2">⏳</span> Loading map...
-      </div>
+      <output className="bg-white rounded-xl shadow-md p-8 text-center text-gray-400 block" aria-label="Loading map">
+        <span className="animate-spin inline-block mr-2" aria-hidden="true">⏳</span> Loading map...
+      </output>
     )
   }
 
   const selectedHospital = matches?.find((m) => m.hospital.id === selectedHospitalId)?.hospital
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-4 space-y-3">
+    <section className="bg-white rounded-xl shadow-md p-4 space-y-3" aria-label="Route map">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-800">🗺️ Route Map</h2>
+        <h2 className="text-lg font-semibold text-gray-800"><span aria-hidden="true">🗺️</span> Route Map</h2>
         {routeSummary && (
           <span className="text-sm text-gray-500">{routeSummary}</span>
         )}
@@ -232,22 +232,24 @@ export default function MapView({ userCoords, matches, selectedHospitalId, onSel
           {!isNavigating ? (
             <button
               onClick={startNavigation}
+              aria-label="Start live ambulance tracking"
               className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors flex items-center gap-2"
             >
-              🚑 Start Live Tracking
+              <span aria-hidden="true">🚑</span> Start Live Tracking
             </button>
           ) : (
             <button
               onClick={stopNavigation}
+              aria-label="Stop live ambulance tracking"
               className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg transition-colors flex items-center gap-2"
             >
-              ⏹️ Stop Tracking
+              <span aria-hidden="true">⏹️</span> Stop Tracking
             </button>
           )}
           {eta && (
-            <span className="text-sm font-medium text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full">
-              ⏱️ {eta}
-            </span>
+            <output className="text-sm font-medium text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full" aria-live="polite">
+              <span aria-hidden="true">⏱️</span> {eta}
+            </output>
           )}
           {selectedHospital && (
             <span className="text-sm text-gray-500">
@@ -391,6 +393,6 @@ export default function MapView({ userCoords, matches, selectedHospitalId, onSel
           />
         )}
       </GoogleMap>
-    </div>
+    </section>
   )
 }
