@@ -10,6 +10,8 @@ class AlertRequest(BaseModel):
     emergency: str
     eta: str
     requirements: List[str]
+    user_lat: Optional[float] = None
+    user_lng: Optional[float] = None
 
 
 class AlertResponse(BaseModel):
@@ -18,3 +20,11 @@ class AlertResponse(BaseModel):
     alert_id: str
     status: str
     timestamp: str
+
+
+class LocationUpdate(BaseModel):
+    """Live location update from a user en route to hospital."""
+
+    alert_id: str
+    lat: float
+    lng: float

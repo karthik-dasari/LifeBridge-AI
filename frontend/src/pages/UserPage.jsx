@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { analyzeEmergency, matchHospitals, alertHospital } from '../api'
+import { useState, useEffect, useRef } from 'react'
+import { analyzeEmergency, matchHospitals, alertHospital, updateLiveLocation } from '../api'
 import EmergencyForm from '../components/EmergencyForm'
 import AnalysisResult from '../components/AnalysisResult'
 import HospitalList from '../components/HospitalList'
@@ -14,6 +14,8 @@ export default function UserPage() {
   const [error, setError] = useState('')
   const [userCoords, setUserCoords] = useState(null)
   const [selectedHospitalId, setSelectedHospitalId] = useState(null)
+  const [activeAlertId, setActiveAlertId] = useState(null)
+  const locationWatchRef = useRef(null)
 
   const handleAnalyze = async (data) => {
     setError('')
@@ -58,17 +60,54 @@ export default function UserPage() {
   const handleAlert = async (hospitalId) => {
     if (!analysis) return
     try {
-      await alertHospital({
+      const payload = {
         hospital_id: hospitalId,
         emergency: analysis.emergency_type,
         eta: '10 mins',
         requirements: analysis.required_facilities,
-      })
+      }
+      if (userCoords) {
+        payload.user_lat = userCoords.lat
+        payload.user_lng = userCoords.lng
+      }
+      const res = await alertHospital(payload)
+      const alertId = res.data.alert_id
       setAlertedHospitals((prev) => new Set(prev).add(hospitalId))
+      setActiveAlertId(alertId)
+
+      // Start broadcasting live location for this alert
+      startLocationBroadcast(alertId)
     } catch {
       setError('Failed to send alert.')
     }
   }
+
+  const startLocationBroadcast = (alertId) => {
+    // Stop any previous watch
+    if (locationWatchRef.current != null) {
+      navigator.geolocation.clearWatch(locationWatchRef.current)
+    }
+    if (!navigator.geolocation) return
+
+    locationWatchRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords
+        setUserCoords({ lat: latitude, lng: longitude })
+        updateLiveLocation(alertId, latitude, longitude).catch(() => {})
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 2000 }
+    )
+  }
+
+  // Cleanup location watch on unmount
+  useEffect(() => {
+    return () => {
+      if (locationWatchRef.current != null) {
+        navigator.geolocation.clearWatch(locationWatchRef.current)
+      }
+    }
+  }, [])
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">

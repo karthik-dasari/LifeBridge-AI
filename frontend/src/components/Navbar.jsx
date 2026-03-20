@@ -1,7 +1,9 @@
 import { Link, useLocation } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 export default function Navbar() {
   const location = useLocation()
+  const { user } = useAuth()
 
   const linkClass = (path) =>
     `px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -18,12 +20,15 @@ export default function Navbar() {
             <span className="text-2xl">🏥</span>
             <span className="text-white text-xl font-bold">LifeBridge AI</span>
           </Link>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <Link to="/" className={linkClass('/')}>
               Emergency
             </Link>
-            <Link to="/hospital" className={linkClass('/hospital')}>
-              Hospital Dashboard
+            <Link
+              to={user ? '/hospital' : '/hospital/auth'}
+              className={linkClass(user ? '/hospital' : '/hospital/auth')}
+            >
+              {user ? '📊 Dashboard' : '🔐 Hospital Login'}
             </Link>
           </div>
         </div>

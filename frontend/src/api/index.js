@@ -25,4 +25,16 @@ export const getHospitals = () => {
   return apiClient.get('/hospitals')
 }
 
+export const updateLiveLocation = (alertId, lat, lng) => {
+  return apiClient.post('/location-update', { alert_id: alertId, lat, lng })
+}
+
+export const getLiveLocation = (alertId) => {
+  return apiClient.get(`/live-location/${alertId}`)
+}
+
+export const registerHospital = (data) => {
+  return apiClient.post('/hospitals/register', data)
+}
+
 export default apiClient

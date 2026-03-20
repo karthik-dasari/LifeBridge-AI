@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 
 from app.models.hospital import Hospital, HospitalMatchRequest, HospitalMatchResponse
-from app.services.firebase_service import get_all_hospitals, get_hospital, update_hospital
+from app.services.firebase_service import get_all_hospitals, get_hospital, update_hospital, register_hospital
 from app.services.matching_service import match_hospitals as do_match
 
 router = APIRouter()
@@ -12,6 +12,22 @@ async def list_hospitals():
     """List all registered hospitals."""
     hospitals = get_all_hospitals()
     return hospitals
+
+
+@router.post("/hospitals/register")
+async def register_hospital_route(data: Hospital):
+    """Register a new hospital."""
+    hospital_data = {
+        "name": data.name,
+        "location": {"lat": data.location.lat, "lng": data.location.lng},
+        "facilities": data.facilities,
+        "availability": {
+            "icu_beds": data.availability.icu_beds,
+            "emergency_slots": data.availability.emergency_slots,
+        },
+    }
+    hospital_id = register_hospital(hospital_data)
+    return {"id": hospital_id, "status": "registered"}
 
 
 @router.post("/match-hospitals", response_model=HospitalMatchResponse)
