@@ -53,7 +53,7 @@ export default function HospitalAuth() {
             <h1 className="text-2xl font-bold text-gray-900 mt-2">
               {isLogin ? 'Hospital Login' : 'Register Hospital'}
             </h1>
-            <p className="text-gray-500 text-sm mt-1">
+            <p className="text-gray-600 text-sm mt-1">
               {isLogin
                 ? 'Sign in to access your hospital dashboard'
                 : 'Create an account for your hospital'}
@@ -79,7 +79,7 @@ export default function HospitalAuth() {
                   onChange={(e) => setHospitalName(e.target.value)}
                   placeholder="e.g., Apollo Hospital"
                   aria-required="true"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
             )}
@@ -95,7 +95,7 @@ export default function HospitalAuth() {
                 required
                 aria-required="true"
                 autoComplete="email"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
 
@@ -109,10 +109,12 @@ export default function HospitalAuth() {
                 placeholder="••••••••"
                 required
                 aria-required="true"
+                aria-describedby="password-hint"
                 autoComplete={isLogin ? 'current-password' : 'new-password'}
                 minLength={6}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
+              <p id="password-hint" className="text-xs text-gray-600 mt-1">Must be at least 6 characters</p>
             </div>
 
             <button

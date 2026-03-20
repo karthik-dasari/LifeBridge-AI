@@ -1,1 +1,41 @@
 @import "tailwindcss";
+
+/* ===== ACCESSIBILITY: Global focus-visible styles ===== */
+
+/* Ensure all interactive elements show a visible focus ring for keyboard users (WCAG 2.4.7) */
+*:focus-visible {
+  outline: 2px solid #4F46E5;
+  outline-offset: 2px;
+}
+
+/* Remove default outline only when NOT using keyboard (mouse/touch clicks) */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Ensure reduced motion preference is respected (WCAG 2.3.3) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Ensure minimum touch target size (WCAG 2.5.8) */
+button,
+a,
+input,
+select,
+textarea {
+  min-height: 44px;
+}
+
+/* Small inline elements like badges can be excluded from touch target sizing */
+span[class*="rounded-full"],
+li[class*="rounded-full"] {
+  min-height: auto;
+}

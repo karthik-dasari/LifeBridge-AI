@@ -159,7 +159,7 @@ export default function HospitalDashboard() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900"><span aria-hidden="true">🏥</span> Hospital Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-1">Logged in as {user.email}</p>
+          <p className="text-sm text-gray-600 mt-1">Logged in as {user.email}</p>
         </div>
         <button
           onClick={handleLogout}
@@ -193,17 +193,17 @@ export default function HospitalDashboard() {
               }`}
             >
               <h3 className="font-semibold text-gray-900">{h.name}</h3>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-600 mt-1">
                 <span aria-hidden="true">📍</span> {h.location.lat.toFixed(4)}, {h.location.lng.toFixed(4)}
               </p>
               <div className="flex flex-wrap gap-1 mt-2">
                 {h.facilities.slice(0, 3).map((f) => (
-                  <span key={f} className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">
+                  <span key={f} className="bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded-full">
                     {f}
                   </span>
                 ))}
                 {h.facilities.length > 3 && (
-                  <span className="text-xs text-gray-400">+{h.facilities.length - 3}</span>
+                  <span className="text-xs text-gray-600">+{h.facilities.length - 3}</span>
                 )}
               </div>
             </button>
@@ -219,13 +219,13 @@ export default function HospitalDashboard() {
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">{selectedHospital.name}</h2>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide">Location</p>
+                    <p className="text-xs text-gray-700 uppercase tracking-wide">Location</p>
                     <p className="text-sm text-gray-700">
                       {selectedHospital.location.lat.toFixed(4)}, {selectedHospital.location.lng.toFixed(4)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide">Availability</p>
+                    <p className="text-xs text-gray-700 uppercase tracking-wide">Availability</p>
                     <p className="text-sm text-gray-700">
                       <span aria-hidden="true">🛏️</span> ICU: <strong>{selectedHospital.availability.icu_beds}</strong> &nbsp;|&nbsp;
                       <span aria-hidden="true">🚑</span> Emergency: <strong>{selectedHospital.availability.emergency_slots}</strong>
@@ -233,7 +233,7 @@ export default function HospitalDashboard() {
                   </div>
                 </div>
                 <div className="mt-4">
-                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Facilities</p>
+                  <p className="text-xs text-gray-700 uppercase tracking-wide mb-2">Facilities</p>
                   <div className="flex flex-wrap gap-2">
                     {selectedHospital.facilities.map((f) => (
                       <span key={f} className="bg-indigo-50 text-indigo-700 text-sm px-3 py-1 rounded-full">
@@ -254,7 +254,7 @@ export default function HospitalDashboard() {
                       </span>
                     )}
                   </h3>
-                  <span className="text-xs text-gray-400">Auto-refreshes every 5s</span>
+                  <span className="text-xs text-gray-600">Auto-refreshes every 5s</span>
                 </div>
                 {alerts.length === 0 ? (
                   <p className="text-sm text-gray-500">No incoming alerts.</p>
@@ -292,7 +292,7 @@ export default function HospitalDashboard() {
                               </div>
                             </div>
                             <div className="flex flex-col items-end gap-2">
-                              <span className="text-xs text-gray-400">{alert.timestamp}</span>
+                              <span className="text-xs text-gray-600">{alert.timestamp}</span>
                               <button
                                 onClick={() => isTracking ? stopTracking() : startTracking(alertId)}
                                 aria-label={isTracking ? 'Stop tracking this alert' : 'Track user location live'}
@@ -328,7 +328,7 @@ export default function HospitalDashboard() {
                   </div>
 
                   {!liveUserPos && (
-                    <p className="text-sm text-gray-400">Waiting for user location data...</p>
+                    <p className="text-sm text-gray-600">Waiting for user location data...</p>
                   )}
 
                   <GoogleMap
@@ -437,7 +437,7 @@ export default function HospitalDashboard() {
               )}
             </>
           ) : (
-            <div className="bg-white rounded-xl shadow-md p-12 text-center text-gray-400">
+            <div className="bg-white rounded-xl shadow-md p-12 text-center text-gray-600">
               <p className="text-4xl mb-3" aria-hidden="true">🏥</p>
               <p className="text-lg">Select a hospital to view details and alerts</p>
             </div>

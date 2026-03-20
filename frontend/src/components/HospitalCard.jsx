@@ -14,7 +14,7 @@ export default function HospitalCard({ match, onAlert, alertSent, isRouteSelecte
       <div className="flex items-start justify-between mb-3">
         <div>
           <h3 className="text-lg font-bold text-gray-900">{hospital.name}</h3>
-          <p className="text-sm text-gray-500">{distance_km} km away</p>
+          <p className="text-sm text-gray-600">{distance_km} km away</p>
         </div>
         <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${badge.color}`}>
           {badge.label}
@@ -23,7 +23,7 @@ export default function HospitalCard({ match, onAlert, alertSent, isRouteSelecte
 
       {/* Match score bar */}
       <div className="mb-3">
-        <div className="flex justify-between text-xs text-gray-500 mb-1">
+        <div className="flex justify-between text-xs text-gray-700 mb-1">
           <span>Match Score</span>
           <span className="font-semibold">{match_score}/100</span>
         </div>
@@ -42,7 +42,7 @@ export default function HospitalCard({ match, onAlert, alertSent, isRouteSelecte
 
       {/* Facilities */}
       <div className="mb-3">
-        <p className="text-xs text-gray-500 mb-1">Facilities</p>
+        <p className="text-xs text-gray-700 mb-1">Facilities</p>
         <ul className="flex flex-wrap gap-1 list-none" aria-label="Hospital facilities">
           {hospital.facilities.map((f) => (
             <li key={f} className="bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded-full">

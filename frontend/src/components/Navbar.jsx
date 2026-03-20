@@ -9,7 +9,7 @@ export default function Navbar() {
     `px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
       location.pathname === path
         ? 'bg-white text-indigo-700 shadow-sm'
-        : 'text-indigo-100 hover:bg-indigo-500'
+        : 'text-white hover:bg-indigo-500'
     }`
 
   return (

@@ -209,7 +209,7 @@ export default function MapView({ userCoords, matches, selectedHospitalId, onSel
 
   if (!isLoaded) {
     return (
-      <output className="bg-white rounded-xl shadow-md p-8 text-center text-gray-400 block" aria-label="Loading map">
+      <output className="bg-white rounded-xl shadow-md p-8 text-center text-gray-600 block" aria-label="Loading map">
         <span className="animate-spin inline-block mr-2" aria-hidden="true">⏳</span> Loading map...
       </output>
     )
@@ -222,7 +222,7 @@ export default function MapView({ userCoords, matches, selectedHospitalId, onSel
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-800"><span aria-hidden="true">🗺️</span> Route Map</h2>
         {routeSummary && (
-          <span className="text-sm text-gray-500">{routeSummary}</span>
+          <span className="text-sm text-gray-600">{routeSummary}</span>
         )}
       </div>
 
@@ -252,7 +252,7 @@ export default function MapView({ userCoords, matches, selectedHospitalId, onSel
             </output>
           )}
           {selectedHospital && (
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-gray-700">
               → {selectedHospital.name}
             </span>
           )}
@@ -260,7 +260,7 @@ export default function MapView({ userCoords, matches, selectedHospitalId, onSel
       )}
 
       {!selectedHospitalId && matches?.length > 0 && (
-        <p className="text-sm text-gray-400">Click "Show Route" on a hospital card to see directions</p>
+        <p className="text-sm text-gray-600">Click &quot;Show Route&quot; on a hospital card to see directions</p>
       )}
 
       <GoogleMap
@@ -340,8 +340,8 @@ export default function MapView({ userCoords, matches, selectedHospitalId, onSel
         {activeInfo === 'user' && userCoords && (
           <InfoWindow position={userCoords} onCloseClick={() => setActiveInfo(null)}>
             <div className="text-sm">
-              <strong>📍 Your Location</strong>
-              <p className="text-gray-500 text-xs mt-1">
+              <strong><span aria-hidden="true">📍</span> Your Location</strong>
+              <p className="text-gray-600 text-xs mt-1">
                 {userCoords.lat.toFixed(4)}, {userCoords.lng.toFixed(4)}
               </p>
             </div>
@@ -361,10 +361,10 @@ export default function MapView({ userCoords, matches, selectedHospitalId, onSel
             >
               <div className="text-sm min-w-[180px]">
                 <strong>{match.hospital.name}</strong>
-                <p className="text-gray-500 text-xs mt-1">{match.distance_km} km away</p>
+                <p className="text-gray-600 text-xs mt-1">{match.distance_km} km away</p>
                 <p className="text-xs mt-1">
                   Score: <strong>{match.match_score}/100</strong>
-                  <span className="ml-2">🛏️ ICU: {match.hospital.availability.icu_beds}</span>
+                  <span className="ml-2"><span aria-hidden="true">🛏️</span> ICU: {match.hospital.availability.icu_beds}</span>
                 </p>
                 <div className="flex flex-wrap gap-1 mt-1">
                   {match.hospital.facilities.slice(0, 4).map((f) => (

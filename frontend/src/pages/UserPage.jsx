@@ -113,7 +113,7 @@ export default function UserPage() {
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
       <div className="text-center mb-2">
         <h1 className="text-3xl font-bold text-gray-900"><span aria-hidden="true">🚨</span> Emergency Response</h1>
-        <p className="text-gray-500 mt-1">Describe your emergency and we&apos;ll find the best hospital</p>
+        <p className="text-gray-600 mt-1">Describe your emergency and we&apos;ll find the best hospital</p>
       </div>
 
       <EmergencyForm onAnalyze={handleAnalyze} loading={loading} />
@@ -127,7 +127,7 @@ export default function UserPage() {
       <AnalysisResult analysis={analysis} />
 
       {matching && (
-        <output className="text-center text-gray-500 py-4 block" aria-live="polite">
+        <output className="text-center text-gray-600 py-4 block" aria-live="polite">
           <span className="animate-spin inline-block mr-2" aria-hidden="true">⏳</span>
           Finding matching hospitals...
         </output>
