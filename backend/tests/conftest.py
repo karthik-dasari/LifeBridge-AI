@@ -2,4 +2,4 @@
 import os
 
 # Allow TestClient's default 'testserver' hostname through TrustedHostMiddleware
-os.environ.setdefault("ALLOWED_HOSTS", "localhost,127.0.0.1,testserver")
+os.environ["ALLOWED_HOSTS"] = "localhost,127.0.0.1,testserver"

@@ -42,6 +42,8 @@ app.add_middleware(
 
 # --- Trusted Host middleware ---
 _allowed_hosts = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+if os.getenv("ENVIRONMENT") != "production":
+    _allowed_hosts.append("testserver")
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=_allowed_hosts)
 
 

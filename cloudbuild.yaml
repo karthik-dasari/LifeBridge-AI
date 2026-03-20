@@ -22,7 +22,7 @@ steps:
       - 'managed'
       - '--allow-unauthenticated'
       - '--set-env-vars'
-      - 'ENVIRONMENT=production,GCP_PROJECT_ID=$PROJECT_ID,ALLOWED_ORIGINS=https://$PROJECT_ID.web.app,ALLOWED_HOSTS=$PROJECT_ID.web.app'
+      - '^##^ENVIRONMENT=production##GCP_PROJECT_ID=$PROJECT_ID##ALLOWED_ORIGINS=https://$PROJECT_ID.web.app,https://$PROJECT_ID.firebaseapp.com##ALLOWED_HOSTS=$PROJECT_ID.web.app,$PROJECT_ID.firebaseapp.com'
       - '--memory'
       - '512Mi'
       - '--max-instances'
