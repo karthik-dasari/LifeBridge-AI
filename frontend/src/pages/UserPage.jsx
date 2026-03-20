@@ -3,6 +3,7 @@ import { analyzeEmergency, matchHospitals, alertHospital } from '../api'
 import EmergencyForm from '../components/EmergencyForm'
 import AnalysisResult from '../components/AnalysisResult'
 import HospitalList from '../components/HospitalList'
+import MapView from '../components/MapView'
 
 export default function UserPage() {
   const [analysis, setAnalysis] = useState(null)
@@ -11,13 +12,21 @@ export default function UserPage() {
   const [matching, setMatching] = useState(false)
   const [alertedHospitals, setAlertedHospitals] = useState(new Set())
   const [error, setError] = useState('')
+  const [userCoords, setUserCoords] = useState(null)
+  const [selectedHospitalId, setSelectedHospitalId] = useState(null)
 
   const handleAnalyze = async (data) => {
     setError('')
     setAnalysis(null)
     setMatches([])
     setAlertedHospitals(new Set())
+    setSelectedHospitalId(null)
     setLoading(true)
+
+    // Store user coordinates for map
+    if (data.lat != null && data.lng != null) {
+      setUserCoords({ lat: data.lat, lng: data.lng })
+    }
 
     try {
       const res = await analyzeEmergency(data)
@@ -85,7 +94,22 @@ export default function UserPage() {
         </div>
       )}
 
-      <HospitalList matches={matches} onAlert={handleAlert} alertedHospitals={alertedHospitals} />
+      <HospitalList
+        matches={matches}
+        onAlert={handleAlert}
+        alertedHospitals={alertedHospitals}
+        selectedHospitalId={selectedHospitalId}
+        onShowRoute={setSelectedHospitalId}
+      />
+
+      {matches.length > 0 && (
+        <MapView
+          userCoords={userCoords}
+          matches={matches}
+          selectedHospitalId={selectedHospitalId}
+          onSelectHospital={setSelectedHospitalId}
+        />
+      )}
     </div>
   )
 }

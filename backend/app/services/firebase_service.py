@@ -55,7 +55,7 @@ _use_mock = True
 
 
 def _init_firebase():
-    """Initialize Firebase Admin SDK if credentials are available."""
+    """Initialize Firebase Admin SDK using credentials or ADC."""
     global _db, _use_mock
     if _db is not None:
         return
@@ -63,12 +63,13 @@ def _init_firebase():
         if settings.FIREBASE_CREDENTIALS_PATH:
             cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
             firebase_admin.initialize_app(cred)
-            _db = firestore.client()
-            _use_mock = False
-            _seed_mock_data()
         else:
-            _use_mock = True
-    except Exception:
+            firebase_admin.initialize_app(options={'projectId': 'promptwars-hackathon-490805'})
+        _db = firestore.client()
+        _use_mock = False
+        _seed_mock_data()
+    except Exception as e:
+        print(f"Firebase init failed: {e}")
         _use_mock = True
 
 

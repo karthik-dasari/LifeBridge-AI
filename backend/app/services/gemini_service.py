@@ -58,15 +58,13 @@ def _mock_analyze(input_text: str) -> EmergencyAnalysis:
 
 
 async def analyze_emergency(input_text: str, location: str) -> EmergencyAnalysis:
-    """Analyze emergency input using Gemini API or mock fallback."""
-    if not settings.GEMINI_API_KEY:
-        return _mock_analyze(input_text)
-
+    """Analyze emergency input using Vertex AI Gemini model or mock fallback."""
     try:
-        import google.generativeai as genai
+        import vertexai
+        from vertexai.generative_models import GenerativeModel
 
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        model = genai.GenerativeModel("gemini-2.0-flash")
+        vertexai.init(project="promptwars-hackathon-490805", location="us-central1")
+        model = GenerativeModel("gemini-1.5-flash") # Using 1.5 because 2.0 might need preview SDK on Vertex
 
         prompt = f"""You are a medical emergency triage AI. Analyze the following emergency description and return ONLY a JSON object with no extra text.
 

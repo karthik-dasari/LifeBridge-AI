@@ -1,6 +1,6 @@
 import HospitalCard from './HospitalCard'
 
-export default function HospitalList({ matches, onAlert, alertedHospitals }) {
+export default function HospitalList({ matches, onAlert, alertedHospitals, selectedHospitalId, onShowRoute }) {
   if (!matches || matches.length === 0) return null
 
   return (
@@ -15,6 +15,8 @@ export default function HospitalList({ matches, onAlert, alertedHospitals }) {
             match={match}
             onAlert={onAlert}
             alertSent={alertedHospitals.has(match.hospital.id)}
+            isRouteSelected={selectedHospitalId === match.hospital.id}
+            onShowRoute={onShowRoute}
           />
         ))}
       </div>

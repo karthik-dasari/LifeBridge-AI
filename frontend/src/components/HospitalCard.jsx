@@ -1,4 +1,4 @@
-export default function HospitalCard({ match, onAlert, alertSent }) {
+export default function HospitalCard({ match, onAlert, alertSent, isRouteSelected, onShowRoute }) {
   const { hospital, match_score, distance_km, match_type } = match
 
   const matchBadge = {
@@ -55,18 +55,30 @@ export default function HospitalCard({ match, onAlert, alertSent }) {
         <span>🚑 Emergency: <strong>{hospital.availability.emergency_slots}</strong></span>
       </div>
 
-      {/* Alert button */}
-      <button
-        onClick={() => onAlert(hospital.id)}
-        disabled={alertSent}
-        className={`w-full py-2 rounded-lg text-sm font-semibold transition-colors ${
-          alertSent
-            ? 'bg-green-100 text-green-800 cursor-default'
-            : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-        }`}
-      >
-        {alertSent ? '✅ Alert Sent' : '🔔 Send Alert to Hospital'}
-      </button>
+      {/* Action buttons */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => onShowRoute(isRouteSelected ? null : hospital.id)}
+          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${
+            isRouteSelected
+              ? 'bg-green-100 text-green-800 border border-green-300'
+              : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+          }`}
+        >
+          {isRouteSelected ? '✅ Route Shown' : '🗺️ Show Route'}
+        </button>
+        <button
+          onClick={() => onAlert(hospital.id)}
+          disabled={alertSent}
+          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${
+            alertSent
+              ? 'bg-green-100 text-green-800 cursor-default'
+              : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+          }`}
+        >
+          {alertSent ? '✅ Alert Sent' : '🔔 Alert Hospital'}
+        </button>
+      </div>
     </div>
   )
 }

@@ -1,5 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import logging
+import google.cloud.logging
+
+try:
+    client = google.cloud.logging.Client(project="promptwars-hackathon-490805")
+    client.setup_logging()
+    logging.getLogger("uvicorn.access").info("Cloud Logging attached!")
+except Exception as e:
+    logging.warning(f"Failed to attach Cloud Logging: {e}")
 
 from app.routes import emergency, hospitals, alerts
 
