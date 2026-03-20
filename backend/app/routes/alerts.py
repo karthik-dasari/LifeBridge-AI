@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from datetime import datetime, timezone
 
 from app.models.alert import AlertRequest, AlertResponse, LocationUpdate
@@ -8,6 +8,7 @@ from app.services.firebase_service import (
     update_alert_location,
     get_live_location,
 )
+from app.utils.auth import verify_firebase_token
 
 router = APIRouter()
 
@@ -38,8 +39,11 @@ async def alert_hospital(data: AlertRequest):
 
 
 @router.get("/alerts/{hospital_id}")
-async def get_alerts(hospital_id: str):
-    """Get all alerts for a specific hospital."""
+async def get_alerts(
+    hospital_id: str,
+    _user: dict = Depends(verify_firebase_token),
+):
+    """Get all alerts for a specific hospital (requires authentication)."""
     alerts = get_alerts_for_hospital(hospital_id)
     return alerts
 
@@ -52,8 +56,11 @@ async def location_update(data: LocationUpdate):
 
 
 @router.get("/live-location/{alert_id}")
-async def live_location(alert_id: str):
-    """Get the latest live location for a specific alert."""
+async def live_location(
+    alert_id: str,
+    _user: dict = Depends(verify_firebase_token),
+):
+    """Get the latest live location for a specific alert (requires authentication)."""
     loc = get_live_location(alert_id)
     if loc is None:
         return {"lat": None, "lng": None}

@@ -1,5 +1,8 @@
 """Tests for main.py — app creation and middleware."""
+import os
 from unittest.mock import patch, MagicMock
+
+os.environ.setdefault("ALLOWED_HOSTS", "localhost,127.0.0.1,testserver")
 
 
 def test_app_creation():
@@ -39,6 +42,26 @@ def test_cors_middleware_present():
     assert "CORSMiddleware" in middleware_classes
 
 
+def test_trusted_host_middleware_present():
+    """Test that TrustedHostMiddleware is configured."""
+    from main import app
+    middleware_classes = [m.cls.__name__ for m in app.user_middleware]
+    assert "TrustedHostMiddleware" in middleware_classes
+
+
+def test_security_headers():
+    """Test that security headers are added to responses."""
+    from fastapi.testclient import TestClient
+    from main import app
+    client = TestClient(app)
+    resp = client.get("/")
+    assert resp.headers.get("X-Content-Type-Options") == "nosniff"
+    assert resp.headers.get("X-Frame-Options") == "DENY"
+    assert resp.headers.get("X-XSS-Protection") == "1; mode=block"
+    assert "max-age" in resp.headers.get("Strict-Transport-Security", "")
+    assert resp.headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
+
+
 def test_cloud_logging_setup():
     """Test the cloud logging setup branch (lines 7-9)."""
     mock_client = MagicMock()
@@ -47,7 +70,7 @@ def test_cloud_logging_setup():
         # Re-execute the try block logic
         import google.cloud.logging
         import logging
-        client = google.cloud.logging.Client(project="promptwars-hackathon-490805")
+        client = google.cloud.logging.Client(project="test-project")
         client.setup_logging()
         logging.getLogger("uvicorn.access").info("Cloud Logging attached!")
         mock_client.setup_logging.assert_called_once()

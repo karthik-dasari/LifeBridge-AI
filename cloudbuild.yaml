@@ -21,6 +21,14 @@ steps:
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
+      - '--set-env-vars'
+      - 'ENVIRONMENT=production,GCP_PROJECT_ID=$PROJECT_ID,ALLOWED_ORIGINS=https://$PROJECT_ID.web.app,ALLOWED_HOSTS=$PROJECT_ID.web.app'
+      - '--memory'
+      - '512Mi'
+      - '--max-instances'
+      - '10'
+      - '--concurrency'
+      - '80'
 
 images:
   - 'gcr.io/$PROJECT_ID/lifebridge-ai-backend'

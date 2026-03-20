@@ -63,7 +63,7 @@ async def analyze_emergency(input_text: str, location: str) -> EmergencyAnalysis
         import vertexai
         from vertexai.generative_models import GenerativeModel
 
-        vertexai.init(project="promptwars-hackathon-490805", location="us-central1")
+        vertexai.init(project=settings.GCP_PROJECT_ID, location="us-central1")
         model = GenerativeModel("gemini-1.5-flash") # Using 1.5 because 2.0 might need preview SDK on Vertex
 
         prompt = f"""You are a medical emergency triage AI. Analyze the following emergency description and return ONLY a JSON object with no extra text.

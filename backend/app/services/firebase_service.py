@@ -66,7 +66,7 @@ def _init_firebase():
             cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
             firebase_admin.initialize_app(cred)
         else:
-            firebase_admin.initialize_app(options={'projectId': 'promptwars-hackathon-490805'})
+            firebase_admin.initialize_app(options={'projectId': settings.GCP_PROJECT_ID})
         _db = firestore.client()
         _use_mock = False
         _seed_mock_data()

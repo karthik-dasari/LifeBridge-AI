@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import axios from 'axios'
 
+// Mock firebase before api/index.js imports it
+vi.mock('../firebase', () => ({
+  auth: { currentUser: null },
+  default: {},
+}))
+
 // Mock axios
 vi.mock('axios', () => {
   const mockAxios = {
@@ -8,6 +14,10 @@ vi.mock('axios', () => {
     post: vi.fn(),
     get: vi.fn(),
     defaults: { headers: { common: {} } },
+    interceptors: {
+      request: { use: vi.fn() },
+      response: { use: vi.fn() },
+    },
   }
   return { default: mockAxios }
 })

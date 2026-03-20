@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 
-from app.models.hospital import Hospital, HospitalMatchRequest, HospitalMatchResponse
+from app.models.hospital import Hospital, HospitalMatchRequest, HospitalMatchResponse, HospitalUpdate
 from app.services.firebase_service import get_all_hospitals, get_hospital, update_hospital, register_hospital
 from app.services.matching_service import match_hospitals as do_match
+from app.utils.auth import verify_firebase_token
 
 router = APIRouter()
 
@@ -15,8 +16,11 @@ async def list_hospitals():
 
 
 @router.post("/hospitals/register")
-async def register_hospital_route(data: Hospital):
-    """Register a new hospital."""
+async def register_hospital_route(
+    data: Hospital,
+    _user: dict = Depends(verify_firebase_token),
+):
+    """Register a new hospital (requires authentication)."""
     hospital_data = {
         "name": data.name,
         "location": {"lat": data.location.lat, "lng": data.location.lng},
@@ -54,9 +58,20 @@ async def get_hospital_detail(hospital_id: str):
 
 
 @router.put("/hospitals/{hospital_id}")
-async def update_hospital_detail(hospital_id: str, data: dict):
-    """Update hospital facilities/availability."""
-    success = update_hospital(hospital_id, data)
+async def update_hospital_detail(
+    hospital_id: str,
+    data: HospitalUpdate,
+    _user: dict = Depends(verify_firebase_token),
+):
+    """Update hospital facilities/availability (requires authentication)."""
+    update_data = data.model_dump(exclude_none=True)
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No valid fields to update")
+    if "availability" in update_data:
+        update_data["availability"] = {
+            k: v for k, v in update_data["availability"].items()
+        }
+    success = update_hospital(hospital_id, update_data)
     if not success:
         raise HTTPException(status_code=404, detail="Hospital not found")
     return {"status": "updated"}

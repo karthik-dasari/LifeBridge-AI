@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { auth } from '../firebase'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
@@ -7,6 +8,21 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000,
+})
+
+// Attach Firebase ID token to every request
+apiClient.interceptors.request.use(async (config) => {
+  try {
+    const user = auth.currentUser
+    if (user) {
+      const token = await user.getIdToken()
+      config.headers.Authorization = `Bearer ${token}`
+    }
+  } catch {
+    // If token fetch fails, proceed without auth header
+  }
+  return config
 })
 
 export const analyzeEmergency = (data) => {
