@@ -25,16 +25,20 @@ app = FastAPI(
 )
 
 # --- CORS: restrict to known origins ---
-_allowed_origins = os.getenv(
-    "ALLOWED_ORIGINS",
-    "http://localhost:5173;http://localhost:8080;https://promptwars-hackathon-490805.web.app;https://promptwars-hackathon-490805.firebaseapp.com;https://lifebridge-ai-frontend-97926025061.us-central1.run.app",
-).split(";")
+_allowed_origins = [
+    origin.strip()
+    for origin in os.getenv(
+        "ALLOWED_ORIGINS",
+        "http://localhost:5173,http://localhost:8080,https://promptwars-hackathon-490805.web.app,https://promptwars-hackathon-490805.firebaseapp.com,https://lifebridge-ai-frontend-97926025061.us-central1.run.app",
+    ).split(",")
+    if origin.strip()
+]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT"],
+    allow_methods=["GET", "POST", "PUT", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
 
